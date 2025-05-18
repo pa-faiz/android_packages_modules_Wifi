@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_SECONDARY_TRANSIENT;
+import static com.android.server.wifi.WifiLockManager.DELAY_LOCK_RELEASE_MS;
 
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
@@ -572,8 +573,25 @@ public class WifiLockManagerTest extends WifiBaseTest {
                 false);
 
         releaseWifiLockSuccessful(mBinder);
-        assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD,
-                mWifiLockManager.getStrongestLockMode());
+        assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD, mWifiLockManager.getStrongestLockMode());
+
+        mLooper.moveTimeForward(DELAY_LOCK_RELEASE_MS / 2 + 1);
+
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "",
+                mBinder, mWorkSource);
+        assertEquals(expectedMode, mWifiLockManager.getStrongestLockMode());
+        releaseWifiLockSuccessful(mBinder);
+
+        mLooper.moveTimeForward(DELAY_LOCK_RELEASE_MS / 2 + 1);
+        assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD, mWifiLockManager.getStrongestLockMode());
+        mLooper.dispatchAll();
+        // Verify the first release is not triggered
+        inOrder.verify(mClientModeManager, never()).setPowerSave(
+                eq(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK), anyBoolean());
+
+        // Verify the last release is triggered
+        mLooper.moveTimeForward(DELAY_LOCK_RELEASE_MS + 1);
+        mLooper.dispatchAll();
         inOrder.verify(mClientModeManager).setPowerSave(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK,
                 true);
         verify(mWifiMetrics).addWifiLockActiveSession(eq(expectedMode),
@@ -623,6 +641,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
 
         // Release the second lock
         releaseWifiLockSuccessful(mBinder2);
+        mLooper.moveTimeForward(DELAY_LOCK_RELEASE_MS + 1);
+        mLooper.dispatchAll();
         verify(mWifiMetrics).addWifiLockActiveSession(eq(WifiManager.WIFI_MODE_FULL_HIGH_PERF),
                 eq(new int[]{DEFAULT_TEST_UID_1}), eq(new String[]{null}), anyLong(), anyBoolean(),
                 anyBoolean(), anyBoolean());
@@ -764,6 +784,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
                 anyBoolean(), anyBoolean(), anyBoolean());
         assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD,
                 mWifiLockManager.getStrongestLockMode());
+        mLooper.moveTimeForward(DELAY_LOCK_RELEASE_MS + 1);
+        mLooper.dispatchAll();
         inOrder.verify(mClientModeManager).setPowerSave(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK,
                 true);
         verify(mWifiMetrics, never()).addWifiLockActiveSession(
@@ -1067,6 +1089,12 @@ public class WifiLockManagerTest extends WifiBaseTest {
         releaseLowLatencyWifiLockSuccessful(mBinder);
         assertEquals(WifiManager.WIFI_MODE_NO_LOCKS_HELD,
                 mWifiLockManager.getStrongestLockMode());
+        mLooper.dispatchAll();
+        verify(mClientModeManager, never()).setLowLatencyMode(false);
+        verify(mClientModeManager, never()).setPowerSave(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK,
+                true);
+        mLooper.moveTimeForward(DELAY_LOCK_RELEASE_MS + 1);
+        mLooper.dispatchAll();
         inOrder.verify(mClientModeManager).setLowLatencyMode(false);
         inOrder.verify(mClientModeManager).setPowerSave(ClientMode.POWER_SAVE_CLIENT_WIFI_LOCK,
                 true);

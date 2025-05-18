@@ -352,6 +352,7 @@
           <item type="bool" name="config_wifiSoftApSingleLinkMloInBridgedModeSupported" />
           <item type="bool" name="config_wifiTwtSupported" />
           <item type="bool" name="config_wifiWepAllowedControlSupported" />
+          <item type="bool" name="config_wifiRsnOverridingEnabled" />
 
           <!-- Params from config.xml that can be overlayed -->
 

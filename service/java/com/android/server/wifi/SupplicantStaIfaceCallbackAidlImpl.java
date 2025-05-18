@@ -65,6 +65,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiSsid;
 import android.os.Process;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
@@ -555,8 +556,10 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
         newWifiConfiguration.SSID = wifiSsid.toString();
 
         // Set up password or PSK
-        if (password != null) {
-            newWifiConfiguration.preSharedKey = "\"" + password + "\"";
+        if (!TextUtils.isEmpty(password)) {
+            // Remove and add enclosing qutoes to avoid 2 times qutoes for sae_password.
+            newWifiConfiguration.preSharedKey = NativeUtil.removeEnclosingQuotes(password);
+            newWifiConfiguration.preSharedKey = NativeUtil.addEnclosingQuotes(password);
         } else if (psk != null) {
             newWifiConfiguration.preSharedKey = Arrays.toString(psk);
         }

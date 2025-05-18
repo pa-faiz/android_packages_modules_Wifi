@@ -86,3 +86,11 @@ flag {
     bug: "336109216"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "rsn_overriding"
+    namespace: "wifi"
+    description: "Wi-Fi Alliance RSN Overriding feature"
+    bug: "348669010"
+    is_fixed_read_only: true
+}

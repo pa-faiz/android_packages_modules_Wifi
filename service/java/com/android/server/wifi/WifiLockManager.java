@@ -59,6 +59,8 @@ public class WifiLockManager {
 
     private static final int IGNORE_SCREEN_STATE_MASK = 0x01;
     private static final int IGNORE_WIFI_STATE_MASK   = 0x02;
+    @VisibleForTesting
+    public static final long DELAY_LOCK_RELEASE_MS = 1000;
 
     private int mLatencyModeSupport = LOW_LATENCY_SUPPORT_UNDEFINED;
 
@@ -103,6 +105,7 @@ public class WifiLockManager {
         WIFI_CONNECTION_STATE_CHANGED,
         SCREEN_STATE_CHANGED,
     };
+    private final Object mLock = new Object();
 
     WifiLockManager(
             Context context,
@@ -645,7 +648,7 @@ public class WifiLockManager {
 
         // Recalculate the operating mode
         updateOpMode();
-
+        mHandler.removeCallbacksAndMessages(mLock);
         return true;
     }
 
@@ -708,10 +711,8 @@ public class WifiLockManager {
                 // Do nothing
                 break;
         }
-
-        // Recalculate the operating mode
-        updateOpMode();
-
+        // Delay 1s to release the lock to avoid stress the HAL.
+        mHandler.postDelayed(this::updateOpMode, mLock, DELAY_LOCK_RELEASE_MS);
         return true;
     }
 
